@@ -1,30 +1,23 @@
-// Firebase 設定
-const firebaseConfig = {
-    // 你需要從 Firebase Console 獲取這些設定值
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
+// 初始化 GUN
+const gun = Gun({
+    peers: ['https://gun-manhattan.herokuapp.com/gun'] // 使用公共節點，也可以改用自己的節點
+});
 
-// 初始化 Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const messagesRef = database.ref('messages');
+// 建立聊天訊息的參考
+const messages = gun.get('chat-messages');
 
 // 監聽新訊息
-messagesRef.on('child_added', (snapshot) => {
-    const message = snapshot.val();
-    displayMessage(message);
+messages.map().on(function(data, id) {
+    if (data && !document.getElementById(id)) {
+        displayMessage(data, id);
+    }
 });
 
 // 顯示訊息
-function displayMessage(message) {
+function displayMessage(message, id) {
     const messagesDiv = document.getElementById('messages');
     const messageElement = document.createElement('div');
+    messageElement.id = id;
     messageElement.className = `message ${message.username === getUserName() ? 'message-outgoing' : 'message-incoming'}`;
     
     const usernameElement = document.createElement('div');
@@ -35,9 +28,28 @@ function displayMessage(message) {
     textElement.className = 'text';
     textElement.textContent = message.text;
     
+    const timeElement = document.createElement('div');
+    timeElement.className = 'time';
+    timeElement.textContent = new Date(message.timestamp).toLocaleTimeString();
+    
     messageElement.appendChild(usernameElement);
     messageElement.appendChild(textElement);
-    messagesDiv.appendChild(messageElement);
+    messageElement.appendChild(timeElement);
+    
+    // 按時間順序插入訊息
+    let inserted = false;
+    Array.from(messagesDiv.children).some(child => {
+        const childMessage = gun.get(child.id);
+        if (childMessage && message.timestamp < childMessage.timestamp) {
+            messagesDiv.insertBefore(messageElement, child);
+            inserted = true;
+            return true;
+        }
+    });
+    
+    if (!inserted) {
+        messagesDiv.appendChild(messageElement);
+    }
     
     // 滾動到最新訊息
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -55,10 +67,11 @@ function sendMessage() {
     const username = getUserName();
     
     if (message) {
-        messagesRef.push({
+        // 建立新訊息
+        messages.set({
             username: username,
             text: message,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
+            timestamp: Date.now()
         });
         
         messageInput.value = '';

@@ -48,6 +48,7 @@ body {
     border-radius: 10px;
     max-width: 70%;
     word-wrap: break-word;
+    position: relative;
 }
 
 .message-incoming {
@@ -67,6 +68,17 @@ body {
     opacity: 0.7;
 }
 
+.message .time {
+    font-size: 0.7rem;
+    opacity: 0.6;
+    margin-top: 5px;
+    text-align: right;
+}
+
+.message-outgoing .time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
 .chat-input {
     padding: 20px;
     background: #f8f9fa;
@@ -80,6 +92,10 @@ body {
     border: 1px solid #dee2e6;
     border-radius: 6px;
     outline: none;
+}
+
+.chat-input input:focus {
+    border-color: #0084ff;
 }
 
 #username {
